@@ -8,7 +8,8 @@ import type { Project } from '@/types/database'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Verify user is authenticated (middleware handles redirect)
+    await supabase.auth.getUser()
 
     // Get user's projects through organization
     const { data: projects } = await supabase

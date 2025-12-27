@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Settings, Trash2 } from 'lucide-react'
+import { ArrowLeft, Settings } from 'lucide-react'
 import { FileUploader, FileList } from '@/components/FileUploader'
 import Link from 'next/link'
 import type { Project, FileRecord, AuditResult } from '@/types/database'
@@ -26,7 +25,6 @@ export default function ProjectDetailClient({
     const [files, setFiles] = useState(initialFiles)
     const [auditing, setAuditing] = useState<string | null>(null)
     const supabase = createClient()
-    const router = useRouter()
 
     const refreshFiles = async () => {
         const { data } = await supabase

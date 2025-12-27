@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,7 +18,7 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
     const [error, setError] = useState<string | null>(null)
     const supabase = createClient()
 
-    const handleDrop = useCallback(async (e: React.DragEvent) => {
+    const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault()
         setIsDragging(false)
 
@@ -31,7 +31,7 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
         }
 
         await uploadFile(dxfFile)
-    }, [])
+    }
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
