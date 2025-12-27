@@ -15,5 +15,11 @@ supabase
 python-dotenv
 httpx
 
+# AI
+google-generativeai
+
+# AWS/R2 Storage (S3-compatible)
+boto3
+
 # Utilities
 loguru

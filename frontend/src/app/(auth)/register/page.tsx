@@ -15,7 +15,7 @@ import Link from 'next/link'
 export default function RegisterPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [orgName, setOrgName] = useState('')
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -29,8 +29,11 @@ export default function RegisterPage() {
 
         // 1. Create user
         const { data: authData, error: authError } = await supabase.auth.signUp({
-            email,
+            email: email.trim(),
             password,
+            options: {
+                emailRedirectTo: `${location.origin}/auth/callback`,
+            }
         })
 
         if (authError) {
@@ -39,42 +42,26 @@ export default function RegisterPage() {
             return
         }
 
-        if (!authData.user) {
-            setError('Error al crear usuario')
-            setLoading(false)
-            return
-        }
-
-        // 2. Create organization
-        const { data: orgData, error: orgError } = await supabase
-            .from('organizations')
-            .insert({ name: orgName })
-            .select()
-            .single()
-
-        if (orgError) {
-            setError('Error al crear organización: ' + orgError.message)
-            setLoading(false)
-            return
-        }
-
-        // 3. Link user to organization as owner
-        const { error: memberError } = await supabase
-            .from('organization_members')
-            .insert({
-                organization_id: orgData.id,
-                user_id: authData.user.id,
-                role: 'owner'
-            })
-
-        if (memberError) {
-            setError('Error al vincular usuario: ' + memberError.message)
-            setLoading(false)
-            return
-        }
-
+        // Success state - verify email
         setSuccess(true)
         setLoading(false)
+    }
+
+    const handleResend = async () => {
+        setLoading(true)
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: email.trim(),
+            options: {
+                emailRedirectTo: `${location.origin}/auth/callback`,
+            }
+        })
+        setLoading(false)
+        if (error) {
+            setError(error.message)
+        } else {
+            alert('¡Correo reenviado! Revisa tu bandeja de entrada.')
+        }
     }
 
     if (success) {
@@ -82,18 +69,33 @@ export default function RegisterPage() {
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
                 <Card className="w-full max-w-md mx-4 bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl font-bold text-green-400">¡Registro Exitoso!</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-green-400">Verifica tu Correo</CardTitle>
                         <CardDescription className="text-slate-400">
-                            Revisa tu email para confirmar tu cuenta.
+                            Hemos enviado un enlace de confirmación a <span className="text-white font-medium">{email}</span>.
+                            <br /><br />
+                            Por favor, haz clic en el enlace para activar tu cuenta y continuar.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                         <Button
                             onClick={() => router.push('/login')}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            variant="outline"
+                            className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
                         >
                             Ir a Login
                         </Button>
+
+                        <div className="text-center">
+                            <p className="text-xs text-slate-500 mb-2">¿No recibiste el correo o expiró?</p>
+                            <Button
+                                onClick={handleResend}
+                                disabled={loading}
+                                variant="link"
+                                className="text-blue-400 h-auto p-0"
+                            >
+                                {loading ? 'Enviando...' : 'Reenviar correo de confirmación'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -116,20 +118,7 @@ export default function RegisterPage() {
                                 {error}
                             </div>
                         )}
-                        <div className="space-y-2">
-                            <label htmlFor="orgName" className="text-sm font-medium text-slate-300">
-                                Nombre de tu Empresa
-                            </label>
-                            <Input
-                                id="orgName"
-                                type="text"
-                                placeholder="Constructora ABC S.A.C."
-                                value={orgName}
-                                onChange={(e) => setOrgName(e.target.value)}
-                                required
-                                className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500"
-                            />
-                        </div>
+
                         <div className="space-y-2">
                             <label htmlFor="email" className="text-sm font-medium text-slate-300">
                                 Email

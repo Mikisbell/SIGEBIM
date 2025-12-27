@@ -1,7 +1,14 @@
 import Link from 'next/link'
 import { ArrowRight, CheckCircle, FileStack, Shield, Zap } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
-export default function Home() {
+export default async function Home(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams
+
+  if (searchParams.code) {
+    redirect(`/auth/callback?code=${searchParams.code}`)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}

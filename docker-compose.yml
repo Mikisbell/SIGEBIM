@@ -1,0 +1,72 @@
+# =============================================================================
+# SIGEBIM Development Environment
+# =============================================================================
+# Start all services: docker compose up
+# Start with rebuild:  docker compose up --build
+# Stop all services:   docker compose down
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Frontend: Next.js Application
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Preserve node_modules from container
+      - /app/.next # Preserve .next build cache
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8005
+    depends_on:
+      - backend
+    networks:
+      - sigebim-network
+
+  # ---------------------------------------------------------------------------
+  # Backend: FastAPI Application (DXF/IFC Processing)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./backend:/app
+    environment:
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET=${R2_BUCKET}
+      - PYTHONUNBUFFERED=1
+    command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+    networks:
+      - sigebim-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8005/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  sigebim-network:
+    driver: bridge
+
+# =============================================================================
+# Optional: Uncomment to add local Supabase for offline development
+# =============================================================================
+# volumes:
+#   supabase-db-data:
+#   supabase-storage-data:

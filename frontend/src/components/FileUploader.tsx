@@ -15,6 +15,7 @@ interface FileUploaderProps {
 export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps) {
     const [isDragging, setIsDragging] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState(0)
     const [error, setError] = useState<string | null>(null)
     const supabase = createClient()
 
@@ -53,16 +54,39 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('No autenticado')
 
-            // 1. Create file record
-            const storagePath = `${projectId}/${Date.now()}-${file.name}`
+            // Sanitize filename - remove special characters
+            const sanitizedName = file.name
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Remove accents
+                .replace(/[{}[\]()#%&*<>?\/\\|'"`~^]/g, '') // Remove special chars
+                .replace(/\s+/g, '_') // Replace spaces with underscores
+                .replace(/__+/g, '_') // Replace multiple underscores with single
 
+            // 1. Get presigned upload URL from R2 backend
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8005'
+            const urlResponse = await fetch(`${backendUrl}/api/v1/storage/upload-url`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: sanitizedName,
+                    content_type: 'application/octet-stream'
+                })
+            })
+
+            if (!urlResponse.ok) {
+                throw new Error('Error al obtener URL de subida')
+            }
+
+            const { upload_url, file_key } = await urlResponse.json()
+
+            // 2. Create file record in database with R2 file_key
             const { data: fileRecord, error: dbError } = await supabase
                 .from('files')
                 .insert({
                     project_id: projectId,
                     uploader_id: user.id,
                     filename: file.name,
-                    storage_path: storagePath,
+                    storage_path: file_key, // R2 file key
                     file_type: 'dxf',
                     size_bytes: file.size,
                     upload_status: 'uploading'
@@ -72,18 +96,37 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
 
             if (dbError) throw new Error(dbError.message)
 
-            // 2. Upload to Storage
-            const { error: storageError } = await supabase.storage
-                .from('files_bucket')
-                .upload(storagePath, file)
+            // 3. Upload directly to R2 with progress tracking
+            const xhr = new XMLHttpRequest()
+            const uploadPromise = new Promise<void>((resolve, reject) => {
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const progress = Math.round((event.loaded / event.total) * 100)
+                        setUploadProgress(progress)
+                    }
+                })
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve()
+                    } else {
+                        reject(new Error('Error al subir archivo'))
+                    }
+                })
+                xhr.addEventListener('error', () => reject(new Error('Error de red')))
+            })
 
-            if (storageError) {
-                // Rollback file record
+            xhr.open('PUT', upload_url)
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream')
+            xhr.send(file)
+
+            try {
+                await uploadPromise
+            } catch {
                 await supabase.from('files').delete().eq('id', fileRecord.id)
-                throw new Error('Error al subir archivo: ' + storageError.message)
+                throw new Error('Error al subir archivo a R2')
             }
 
-            // 3. Update status
+            // 4. Update status
             await supabase
                 .from('files')
                 .update({ upload_status: 'uploaded' })
@@ -95,6 +138,7 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
             setError(err instanceof Error ? err.message : 'Error desconocido')
         } finally {
             setUploading(false)
+            setUploadProgress(0)
         }
     }
 
@@ -110,7 +154,13 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
                 {uploading ? (
                     <>
                         <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-4" />
-                        <p className="text-slate-300">Subiendo archivo...</p>
+                        <p className="text-slate-300 mb-3">Subiendo archivo... {uploadProgress}%</p>
+                        <div className="w-full max-w-xs bg-slate-700 rounded-full h-2">
+                            <div
+                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${uploadProgress}%` }}
+                            />
+                        </div>
                     </>
                 ) : (
                     <>

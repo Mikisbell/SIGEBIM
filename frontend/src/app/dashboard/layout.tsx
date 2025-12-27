@@ -22,6 +22,11 @@ export default async function DashboardLayout({
         .eq('user_id', user.id)
         .single()
 
+    // If user has no organization and is not on onboarding page, redirect
+    if (!membership) {
+        redirect('/onboarding')
+    }
+
     // Handle the foreign table join result - can be single object or array depending on relation
     const orgs = membership?.organizations as unknown as { name: string } | { name: string }[] | null
     const orgName = Array.isArray(orgs) ? orgs[0]?.name : orgs?.name || 'Mi Empresa'

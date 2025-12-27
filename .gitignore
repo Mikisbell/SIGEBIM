@@ -1,0 +1,38 @@
+# =============================================================================
+# SIGEBIM Git Ignore
+# =============================================================================
+
+# Environment files (NEVER commit secrets!)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+.next/
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Supabase
+supabase/.branches/
+supabase/.temp/

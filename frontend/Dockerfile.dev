@@ -1,0 +1,28 @@
+# =============================================================================
+# SIGEBIM Frontend - Development Dockerfile
+# =============================================================================
+# Optimized for hot-reload development with Next.js
+# =============================================================================
+
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies first (for better layer caching)
+COPY package*.json ./
+RUN npm install
+
+# Copy source code (will be overridden by volume mount in dev)
+COPY . .
+
+# Expose Next.js dev server port
+EXPOSE 3005
+
+# Environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3005
+
+# Start dev server with hot reload
+CMD ["npm", "run", "dev", "--", "-p", "3005"]
