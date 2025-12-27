@@ -1,7 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Demo mode flag - set to true when Supabase is not configured
+const DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co'
+
 export async function middleware(request: NextRequest) {
+    // In demo mode, allow all requests without auth
+    if (DEMO_MODE) {
+        console.log('[DEMO MODE] Bypassing authentication for:', request.nextUrl.pathname)
+        return NextResponse.next()
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,
