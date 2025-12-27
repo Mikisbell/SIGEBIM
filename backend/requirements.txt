@@ -1,0 +1,19 @@
+# Core API
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# CAD & Data Processing
+ezdxf
+pandas
+numpy
+# ifcopenshell # Uncomment when we add IFC support (complex install in docker)
+
+# Database & Storage
+supabase
+python-dotenv
+httpx
+
+# Utilities
+loguru
