@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Settings, Play } from 'lucide-react'
 import { FileUploader, FileList } from '@/components/FileUploader'
+import { LargeFileUploader } from '@/components/LargeFileUploader'
 import { AuditResultsTable } from '@/components/AuditResultsTable'
 import { AIChat } from '@/components/AIChat'
 import Link from 'next/link'
@@ -54,6 +55,28 @@ export default function ProjectDetailClient({
         if (data) setFiles(data)
     }
 
+    const handleDelete = async (fileId: string) => {
+        if (!confirm('¿Estás seguro de eliminar este archivo?')) return
+
+        try {
+            // Delete from database (R2 file will remain but orphaned)
+            const { error: auditError } = await supabase.from('audit_results').delete().eq('file_id', fileId)
+            if (auditError) console.error('Audit delete error:', auditError)
+
+            const { error: fileError } = await supabase.from('files').delete().eq('id', fileId)
+            if (fileError) {
+                console.error('File delete error:', fileError)
+                alert('Error al eliminar: ' + fileError.message)
+                return
+            }
+
+            await refreshFiles()
+        } catch (err) {
+            console.error('Delete error:', err)
+            alert('Error al eliminar archivo')
+        }
+    }
+
     // Quick test audit without file
     const handleTestAudit = async () => {
         setTestAuditing(true)
@@ -94,24 +117,29 @@ export default function ProjectDetailClient({
                 .update({ upload_status: 'processing' })
                 .eq('id', fileId)
 
-            // Get signed URL for the file
+            // Get signed URL for the file from R2
             const file = files.find(f => f.id === fileId)
             if (!file) throw new Error('Archivo no encontrado')
 
-            const { data: signedUrlData } = await supabase.storage
-                .from('files_bucket')
-                .createSignedUrl(file.storage_path, 60)
+            // Get R2 download URL from backend
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8005'
+            const urlResponse = await fetch(`${backendUrl}/api/v1/storage/download-url`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_key: file.storage_path })
+            })
 
-            if (!signedUrlData?.signedUrl) {
-                throw new Error('No se pudo generar URL firmada')
+            if (!urlResponse.ok) {
+                throw new Error('No se pudo generar URL de descarga')
             }
 
+            const { download_url } = await urlResponse.json()
+
             // Call Python backend SYNC endpoint
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8005'
             const response = await fetch(`${backendUrl}/api/v1/audit/sync`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ file_url: signedUrlData.signedUrl }),
+                body: JSON.stringify({ file_url: download_url }),
             })
 
             if (!response.ok) {
@@ -209,10 +237,21 @@ export default function ProjectDetailClient({
                             <CardTitle className="text-white">Archivos DXF</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <FileUploader projectId={projectId} onUploadComplete={refreshFiles} />
+                            <div className="space-y-4">
+                                <FileUploader projectId={projectId} onUploadComplete={refreshFiles} />
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t border-slate-600" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs">
+                                        <span className="bg-slate-800 px-2 text-slate-400">o archivo grande (+100MB)</span>
+                                    </div>
+                                </div>
+                                <LargeFileUploader projectId={projectId} onUploadComplete={refreshFiles} />
+                            </div>
                             {files.length > 0 && (
                                 <div className="mt-6">
-                                    <FileList files={files} onAudit={handleAudit} auditing={auditing} />
+                                    <FileList files={files} onAudit={handleAudit} onDelete={handleDelete} auditing={auditing} />
                                 </div>
                             )}
                         </CardContent>

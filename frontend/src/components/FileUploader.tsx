@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Upload, FileIcon, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { Upload, FileIcon, Loader2, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react'
 import type { FileRecord, AuditResult } from '@/types/database'
 
 interface FileUploaderProps {
@@ -192,10 +192,11 @@ export function FileUploader({ projectId, onUploadComplete }: FileUploaderProps)
 interface FileListProps {
     files: (FileRecord & { audit_results?: AuditResult[] })[]
     onAudit: (fileId: string) => void
+    onDelete: (fileId: string) => void
     auditing: string | null
 }
 
-export function FileList({ files, onAudit, auditing }: FileListProps) {
+export function FileList({ files, onAudit, onDelete, auditing }: FileListProps) {
     const statusIcons: Record<string, React.ReactNode> = {
         uploading: <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />,
         uploaded: <FileIcon className="h-4 w-4 text-slate-400" />,
@@ -227,7 +228,7 @@ export function FileList({ files, onAudit, auditing }: FileListProps) {
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                                 {result && (
                                     <div className="flex items-center gap-2 text-sm">
                                         {auditStatusIcons[result.status]}
@@ -250,6 +251,14 @@ export function FileList({ files, onAudit, auditing }: FileListProps) {
                                         )}
                                     </Button>
                                 )}
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onDelete(file.id)}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

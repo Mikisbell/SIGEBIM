@@ -24,7 +24,7 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - NEXT_PUBLIC_BACKEND_URL=http://backend:8005
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8005
     depends_on:
       - backend
     networks:
