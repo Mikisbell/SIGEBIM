@@ -25,6 +25,33 @@ export default async function DashboardPage() {
 
     return (
         <div className="p-8">
+            {/* Welcome Section - What is SIGEBIM */}
+            <div className="mb-10 p-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl border border-blue-500/30">
+                <h2 className="text-xl font-bold text-white mb-3">🏗️ Bienvenido a SIGEBIM</h2>
+                <p className="text-slate-300 mb-4">
+                    <strong>Sistema Inteligente de Gestión y Auditoría BIM</strong> - Valida automáticamente tus planos CAD/DXF
+                    contra estándares de construcción usando Inteligencia Artificial.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <div className="text-2xl mb-2">📁</div>
+                        <h3 className="text-white font-medium mb-1">1. Sube tu DXF</h3>
+                        <p className="text-slate-400 text-sm">Archivos hasta 5GB+ con subida en partes</p>
+                    </div>
+                    <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <div className="text-2xl mb-2">🔍</div>
+                        <h3 className="text-white font-medium mb-1">2. Auditoría Automática</h3>
+                        <p className="text-slate-400 text-sm">Detectamos capas, entidades y problemas</p>
+                    </div>
+                    <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <div className="text-2xl mb-2">🤖</div>
+                        <h3 className="text-white font-medium mb-1">3. Chat IA</h3>
+                        <p className="text-slate-400 text-sm">Pregunta sobre tu plano al asistente</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
